@@ -67,8 +67,8 @@ public class SpringTest {
     
     @Test
     public void testStackOverflowBecauseOfCyclicRelationBetweenDocumentsLazyDbRefRelated() {
-        One one = new One("one");
-        Two two = new Two("two");
+        LazyFrom one = new LazyFrom("one");
+        LazyTo two = new LazyTo("two");
         template.save(one);
         template.save(two);
 
@@ -77,13 +77,13 @@ public class SpringTest {
         template.save(one);
         template.save(two);
 
-        One foundOne = template.findOne(Query.query(Criteria.where("id").is(one.id)), One.class);
+        LazyFrom foundOne = template.findOne(Query.query(Criteria.where("id").is(one.id)), LazyFrom.class);
         Assert.assertThat(foundOne.refToTwo, Matchers.notNullValue());
         Assert.assertThat(foundOne.refToTwo.id, Matchers.is("two"));
         Assert.assertThat(foundOne.refToTwo.getRefToOne(), IsInstanceOf.instanceOf(LazyLoadingProxy.class));
         Assert.assertThat(foundOne.refToTwo.getRefToOne().id, Matchers.is("one"));
 
-        Two foundTwo = template.findOne(Query.query(Criteria.where("id").is(two.id)), Two.class);
+        LazyTo foundTwo = template.findOne(Query.query(Criteria.where("id").is(two.id)), LazyTo.class);
         Assert.assertThat(foundTwo.refToOne, Matchers.notNullValue());
         Assert.assertThat(foundTwo.refToOne, IsInstanceOf.instanceOf(LazyLoadingProxy.class));
         Assert.assertThat(foundTwo.refToOne.id, Matchers.is("one"));
@@ -94,28 +94,28 @@ public class SpringTest {
     
     @Test
     public void testOKBecauseOfNoCyclicRelationBetweenDocumentsLazyDbRefRelated() {
-        One one = new One("one");
-        Two two = new Two("two");
+        LazyFrom one = new LazyFrom("one");
+        LazyTo two = new LazyTo("two");
         template.save(one);
         template.save(two);
 
         one.refToTwo = two;
         template.save(one);
 
-        One foundOne = template.findOne(Query.query(Criteria.where("id").is(one.id)), One.class);
+        LazyFrom foundOne = template.findOne(Query.query(Criteria.where("id").is(one.id)), LazyFrom.class);
         Assert.assertThat(foundOne.refToTwo, Matchers.notNullValue());
-        Assert.assertThat(foundOne.refToTwo, IsInstanceOf.instanceOf(Two.class));
+        Assert.assertThat(foundOne.refToTwo, IsInstanceOf.instanceOf(LazyTo.class));
         Assert.assertThat(foundOne.refToTwo.id, Matchers.is("two"));
         Assert.assertThat(foundOne.refToTwo.refToOne, Matchers.nullValue());
 
-        Two foundTwo = template.findOne(Query.query(Criteria.where("id").is(two.id)), Two.class);
+        LazyTo foundTwo = template.findOne(Query.query(Criteria.where("id").is(two.id)), LazyTo.class);
         Assert.assertThat(foundTwo.refToOne, Matchers.nullValue());
     }
     
     @Test
     public void testStackOverflowBecauseOfCyclicRelationBetweenDocumentsDbRefRelated () {
-        Three three = new Three("three");
-        Four four   = new Four("four");
+        EagerFrom three = new EagerFrom("three");
+        EagerTo four   = new EagerTo("four");
         template.save(three);
         template.save(four);
 
@@ -124,38 +124,38 @@ public class SpringTest {
         template.save(three);
         template.save(four);
 
-        Three foundThree = template.findOne(Query.query(Criteria.where("id").is(three.id)), Three.class);
+        EagerFrom foundThree = template.findOne(Query.query(Criteria.where("id").is(three.id)), EagerFrom.class);
         Assert.assertThat(foundThree.refToFour, Matchers.notNullValue());
-        Assert.assertThat(foundThree.refToFour, IsInstanceOf.instanceOf(Four.class));
+        Assert.assertThat(foundThree.refToFour, IsInstanceOf.instanceOf(EagerTo.class));
         Assert.assertThat(foundThree.refToFour.id, Matchers.is("four"));
-        Assert.assertThat(foundThree.refToFour.refToThree, IsInstanceOf.instanceOf(Three.class));
+        Assert.assertThat(foundThree.refToFour.refToThree, IsInstanceOf.instanceOf(EagerFrom.class));
         Assert.assertThat(foundThree.refToFour.refToThree.id, Matchers.is("three"));
 
-        Four foundFour = template.findOne(Query.query(Criteria.where("id").is(four.id)), Four.class);
+        EagerTo foundFour = template.findOne(Query.query(Criteria.where("id").is(four.id)), EagerTo.class);
         Assert.assertThat(foundFour.refToThree, Matchers.notNullValue());
-        Assert.assertThat(foundFour.refToThree, IsInstanceOf.instanceOf(Three.class));
+        Assert.assertThat(foundFour.refToThree, IsInstanceOf.instanceOf(EagerFrom.class));
         Assert.assertThat(foundFour.refToThree.id, Matchers.is("three"));
-        Assert.assertThat(foundFour.refToThree.refToFour,  IsInstanceOf.instanceOf(Four.class));
+        Assert.assertThat(foundFour.refToThree.refToFour,  IsInstanceOf.instanceOf(EagerTo.class));
         Assert.assertThat(foundFour.refToThree.refToFour.id, Matchers.is("four"));
     }
     
     @Test
     public void testOKBecauseOfNoCyclicRelationBetweenDocumentsDbRefRelated () {
-        Three three = new Three("three");
-        Four four   = new Four("four");
+        EagerFrom three = new EagerFrom("three");
+        EagerTo four   = new EagerTo("four");
         template.save(three);
         template.save(four);
 
         three.refToFour = four;
         template.save(three);
 
-        Three foundThree = template.findOne(Query.query(Criteria.where("id").is(three.id)), Three.class);
+        EagerFrom foundThree = template.findOne(Query.query(Criteria.where("id").is(three.id)), EagerFrom.class);
         Assert.assertThat(foundThree.refToFour, Matchers.notNullValue());
-        Assert.assertThat(foundThree.refToFour, IsInstanceOf.instanceOf(Four.class));
+        Assert.assertThat(foundThree.refToFour, IsInstanceOf.instanceOf(EagerTo.class));
         Assert.assertThat(foundThree.refToFour.id, Matchers.is("four"));
         Assert.assertThat(foundThree.refToFour.refToThree, Matchers.nullValue());
 
-        Four foundFour = template.findOne(Query.query(Criteria.where("id").is(four.id)), Four.class);
+        EagerTo foundFour = template.findOne(Query.query(Criteria.where("id").is(four.id)), EagerTo.class);
         Assert.assertThat(foundFour.refToThree, Matchers.nullValue());
     }
 
@@ -164,48 +164,48 @@ public class SpringTest {
     //                      but when using single argument constructor everything works fine
     //
     
-    public static class One {
+    public static class LazyFrom {
       @Id 
       private String id;
       @org.springframework.data.mongodb.core.mapping.DBRef(lazy = true) 
-      private Two refToTwo;
+      private LazyTo refToTwo;
       
 //        @PersistenceConstructor
-        public One(String id) {
+        public LazyFrom(String id) {
             this.id = id;
         }
         @PersistenceConstructor
-        public One(String id, Two refToTwo) {
+        public LazyFrom(String id, LazyTo refToTwo) {
             this.id = id;
             this.refToTwo = refToTwo;
         }
         public String getId() {
             return id;
         }
-        public Two getRefToTwo() {
+        public LazyTo getRefToTwo() {
             return refToTwo;
         }
     }
 
-    public static class Two {
+    public static class LazyTo {
       @Id 
       private String id;
       @org.springframework.data.mongodb.core.mapping.DBRef(lazy = true) 
-      private One refToOne;
+      private LazyFrom refToOne;
 
 //        @PersistenceConstructor
-        public Two(String id) {
+        public LazyTo(String id) {
             this.id = id;
         }
         @PersistenceConstructor
-        public Two(String id, One refToOne) {
+        public LazyTo(String id, LazyFrom refToOne) {
             this.id = id;
             this.refToOne = refToOne;
         }
         public String getId() {
             return id;
         }
-        public One getRefToOne() {
+        public LazyFrom getRefToOne() {
             return refToOne;
         }
     }
@@ -214,48 +214,48 @@ public class SpringTest {
     // the same problem with regular DBRefs
     //
     
-    public static class Three {
+    public static class EagerFrom {
         @Id 
         private String id;
         @org.springframework.data.mongodb.core.mapping.DBRef 
-        private Four refToFour;
+        private EagerTo refToFour;
         
 //        @PersistenceConstructor
-        public Three(String id) {
+        public EagerFrom(String id) {
             this.id = id;
         }
         @PersistenceConstructor
-        public Three(String id, Four refToFour) {
+        public EagerFrom(String id, EagerTo refToFour) {
             this.id = id;
             this.refToFour = refToFour;
         }
         public String getId() {
             return id;
         }
-        public Four getRefToFour() {
+        public EagerTo getRefToFour() {
             return refToFour;
         }
     }
     
-    public static class Four {
+    public static class EagerTo {
         @Id 
         private String id;
         @org.springframework.data.mongodb.core.mapping.DBRef 
-        private Three refToThree;
+        private EagerFrom refToThree;
         
 //        @PersistenceConstructor
-        public Four(String id) {
+        public EagerTo(String id) {
             this.id = id;
         }
         @PersistenceConstructor
-        public Four(String id, Three refToThree) {
+        public EagerTo(String id, EagerFrom refToThree) {
             this.id = id;
             this.refToThree = refToThree;
         }
         public String getId() {
             return id;
         }
-        public Three getRefToThree() {
+        public EagerFrom getRefToThree() {
             return refToThree;
         }
     }
