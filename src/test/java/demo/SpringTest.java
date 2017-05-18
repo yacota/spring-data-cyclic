@@ -5,40 +5,68 @@
  */
 package demo;
 
+import com.mongodb.MongoClient;
+import de.flapdoodle.embed.mongo.MongodExecutable;
+import de.flapdoodle.embed.mongo.MongodProcess;
+import de.flapdoodle.embed.mongo.MongodStarter;
+import de.flapdoodle.embed.mongo.config.IMongodConfig;
+import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.Net;
+import de.flapdoodle.embed.mongo.distribution.Version;
+import de.flapdoodle.embed.process.runtime.Network;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
-import org.springframework.boot.autoconfigure.mongo.MongoDataAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.LazyLoadingProxy;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
- *
  * @author jllach
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@EnableMongoRepositories
-@TestPropertySource(inheritProperties = false, locations  = {"classpath:/application.properties"})
-@ContextConfiguration(classes = {MongoAutoConfiguration.class, MongoDataAutoConfiguration.class, MongoEmbeddedConfiguration.class })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@SpringBootTest(classes = Application.class)
 public class SpringTest {
+
+    private static final MongodStarter starter = MongodStarter.getDefaultInstance();
+    private static MongodExecutable mongodExecutable;
+    private static MongodProcess mongoD;
+    private static MongoClient mongo;
     
     @Autowired
-    MongoTemplate template;
+    private MongoTemplate template;
+    
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        int port = 12345;
+        IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
+                                                              .net(new Net(port, Network.localhostIsIPv6())).build();
+        mongodExecutable = starter.prepare(mongodConfig);
+        mongoD = mongodExecutable.start();
+        mongo = new MongoClient("localhost", port);
+    }
+    
+    @AfterClass
+    public static void tearDownClass() throws Exception {
+        mongoD.stop();
+        mongodExecutable.stop();
+    }
+    
     
     @Test
-    public void testOneAndTwoStackOverflowBecauseOfCyclicRelation() {
+    public void testStackOverflowBecauseOfCyclicRelationBetweenDocumentsLazyDbRefRelated() {
         One one = new One("one");
         Two two = new Two("two");
         template.save(one);
@@ -65,7 +93,7 @@ public class SpringTest {
     }
     
     @Test
-    public void test1And2OKBecauseOfNoCyclicRelation() {
+    public void testOKBecauseOfNoCyclicRelationBetweenDocumentsLazyDbRefRelated() {
         One one = new One("one");
         Two two = new Two("two");
         template.save(one);
@@ -85,7 +113,7 @@ public class SpringTest {
     }
     
     @Test
-    public void test3And4KOStackOverflowBecauseOfCyclicRelation () {
+    public void testStackOverflowBecauseOfCyclicRelationBetweenDocumentsDbRefRelated () {
         Three three = new Three("three");
         Four four   = new Four("four");
         template.save(three);
@@ -112,7 +140,7 @@ public class SpringTest {
     }
     
     @Test
-    public void test3And4OKBecauseOfNoCyclicRelation () {
+    public void testOKBecauseOfNoCyclicRelationBetweenDocumentsDbRefRelated () {
         Three three = new Three("three");
         Four four   = new Four("four");
         template.save(three);
@@ -137,7 +165,8 @@ public class SpringTest {
     //
     
     public static class One {
-      @Id private String id;
+      @Id 
+      private String id;
       @org.springframework.data.mongodb.core.mapping.DBRef(lazy = true) 
       private Two refToTwo;
       
@@ -230,5 +259,4 @@ public class SpringTest {
             return refToThree;
         }
     }
-    
 }
